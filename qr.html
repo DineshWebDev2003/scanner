@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Scanner</title>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.5/html5-qrcode.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        #qr-reader-container {
+            width: 100%;
+            margin: 20px auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        #qr-result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1.1em;
+        }
+        .attendance-log {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .attendance-actions {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>QR Code Scanner</h1>
+
+    <div class="container">
+        <div id="qr-reader-container"></div>
+        <div id="qr-result">Scanned QR Code will appear here.</div>
+    </div>
+
+    <div class="container" style="margin-top: 20px;">
+        <h2>Scan QR Code to Mark Attendance</h2>
+
+        <div class="attendance-actions">
+            <button id="in-btn" onclick="markAttendance('In')">Mark In</button> 
+            <button id="out-btn" onclick="markAttendance('Out')" style="margin-top: 20px;">Mark Out</button>
+        </div>
+
+        <div class="attendance-log" id="attendance-log">
+            <h3>Attendance Log</h3>
+            <ul id="log-list"></ul>
+        </div>
+
+        <!-- Download Attendance Log -->
+        <button id="download-btn" onclick="downloadLog()">Download Attendance Log</button>
+    </div>
+
+    <script>
+        const students = {}; // Store student details
+        const attendanceLog = []; // Store attendance log data
+        let currentStudent = null; // Store the current student scanning the QR code
+
+        // Initialize QR scanner
+        function onScanSuccess(decodedText, decodedResult) {
+            const resultDiv = document.getElementById('qr-result');
+            resultDiv.innerHTML = `<strong>Scanned Data:</strong> ${decodedText}`;
+            currentStudent = { name: decodedText, id: decodedText }; // Assuming QR contains student data
+            html5QrCode.stop();
+        }
+
+        const html5QrCode = new Html5Qrcode("qr-reader-container");
+        html5QrCode.start(
+            { facingMode: { exact: "environment" } }, 
+            { fps: 10, qrbox: 250 },
+            onScanSuccess
+        ).catch(err => {
+            console.error("QR Code scanning failed: ", err);
+        });
+
+        // Mark attendance as 'In' or 'Out'
+        function markAttendance(status) {
+            if (!currentStudent) {
+                alert("Please scan a student's QR Code first!");
+                return;
+            }
+
+            const logList = document.getElementById('log-list');
+            const listItem = document.createElement('li');
+            const time = new Date().toLocaleTimeString();
+            listItem.textContent = `${currentStudent.name} (${currentStudent.id}) marked as ${status} at ${time}`;
+            logList.appendChild(listItem);
+
+            // Save to the attendance log
+            attendanceLog.push({
+                student: currentStudent,
+                status: status,
+                time: time,
+            });
+
+            // Reset the current student after marking attendance
+            currentStudent = null;
+        }
+
+        // Download attendance log as a text file
+        function downloadLog() {
+            const logText = attendanceLog.map(entry => {
+                return `${entry.student.name} (${entry.student.id}) marked as ${entry.status} at ${entry.time}`;
+            }).join('\n');
+
+            const blob = new Blob([logText], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'attendance_log.txt';
+            link.click();
+        }
+    </script>
+</body>
+</html>
+
+

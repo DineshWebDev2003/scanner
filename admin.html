@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Attendance System</title>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.5/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+   
+</head>
+<body>
+    <h1 style="text-align: center;">Student Attendance System</h1>
+
+    <!-- Student Registration Section -->
+    <div class="container">
+        <h2 style="margin-bottom: 10px;">Register Student</h2>
+        <input type="text" id="student-name" placeholder="Student Name">
+        <input type="text" id="mother-name" placeholder="Mother Name">
+        <input type="text" id="father-name" placeholder="Father Name">
+        <input type="text" id="guardian-name" placeholder="Guardian Name">
+        <input type="text" id="student-id" placeholder="Student ID">
+        <button onclick="generateQRCode()">Generate QR Code</button>
+
+        <div id="qr-code"></div>
+    </div>
+
+    <!-- Attendance Scanning Section -->
+    
+
+        <button style="margin-top: 20px; background-color: #FF69B4; color: white; border-radius: 5px; padding: 10px; text-decoration: none;" onclick="window.location.href='qr.html'">QR Code Scanner</button>
+    </div>
+
+    <script>
+        const students = {}; // Store student details
+        let currentStudent = null; // Store the current student scanning the QR code
+
+        // Generate QR Code for the student
+        function generateQRCode() {
+            const name = document.getElementById('student-name').value;
+            const mother = document.getElementById('mother-name').value;
+            const father = document.getElementById('father-name').value;
+            const guardian = document.getElementById('guardian-name').value;
+            const id = document.getElementById('student-id').value;
+
+            if (!name || !mother || !father || !guardian || !id) {
+                alert("Please fill all fields!");
+                return;
+            }
+
+            const studentData = { name, mother, father, guardian, id };
+            students[id] = studentData; // Save student details
+            const qrCodeDiv = document.getElementById('qr-code');
+            qrCodeDiv.innerHTML = "";
+
+            QRCode.toCanvas(
+                JSON.stringify(studentData),
+                { errorCorrectionLevel: 'H', width: 200 },
+                (err, canvas) => {
+                    if (err) {
+                        console.error(err);
+                        return;
+                    }
+                    qrCodeDiv.appendChild(canvas);
+                }
+            );
+
+            alert("QR Code generated!");
+        }
+
+        // Handle QR Code scanning success
+        function onScanSuccess(decodedText) {
+            try {
+                const data = JSON.parse(decodedText);
+                const student = students[data.id];
+                if (!student) {
+                    alert("Student not registered!");
+                    return;
+                }
+
+                currentStudent = student; // Store current student for attendance marking
+                document.getElementById('qr-result').textContent = `QR Code scanned for: ${student.name} (${student.id})`;
+            } catch (error) {
+                alert("Invalid QR Code!");
+                console.error("Error parsing QR code data:", error);
+            }
+        }
+
+        // Mark attendance as 'In' or 'Out'
+        function markAttendance(status) {
+            if (!currentStudent) {
+                alert("Please scan a student's QR Code first!");
+                return;
+            }
+
+            const logList = document.getElementById('log-list');
+            const listItem = document.createElement('li');
+            const time = new Date().toLocaleTimeString();
+            listItem.textContent = `${currentStudent.name} (${currentStudent.id}) marked as ${status} at ${time}`;
+            logList.appendChild(listItem);
+
+            // Reset the current student after marking attendance
+            currentStudent = null;
+        }
+
+        // Initialize QR Code scanner
+        const html5QrCode = new Html5Qrcode("qr-reader");
+        html5QrCode.start(
+            { facingMode: "environment" }, 
+            { fps: 10, qrbox: 250 },
+            onScanSuccess
+        );
+    </script>
+</body>
+</html>
